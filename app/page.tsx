@@ -42,10 +42,11 @@ function readPrecalcProgress(): ProgressLine {
     const pcRaw = window.localStorage.getItem("bc-bridge-precalc-v1");
     const bridge = bridgeRaw ? (JSON.parse(bridgeRaw) as { completed?: string[] }) : null;
     const pc = pcRaw ? (JSON.parse(pcRaw) as { attempts?: unknown[]; readTopics?: string[] }) : null;
-    const completed = bridge?.completed?.length ?? 0;
+    const bridgeLessonIds = new Set(lessons.map((lesson) => lesson.id));
+    const completed = bridge?.completed?.filter((id) => bridgeLessonIds.has(id)).length ?? 0;
     const attempts = pc?.attempts?.length ?? 0;
     const readTopics = pc?.readTopics?.length ?? 0;
-    const pct = Math.round(((readTopics / 44) * 100 + (completed / lessons.length) * 100) / 2);
+    const pct = Math.min(100, Math.round(((readTopics / 44) * 100 + (completed / lessons.length) * 100) / 2));
     return {
       headline: attempts + readTopics + completed > 0 ? pct + "% studied" : "Not started",
       detail: readTopics + "/44 topics read · " + attempts + " attempts · bridge " + completed + "/" + lessons.length,

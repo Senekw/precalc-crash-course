@@ -1,16 +1,18 @@
 # BC Bridge
 
-A local, three-day precalculus sprint for a student moving directly from
-Algebra 2 into Calculus BC.
+A local, one-day (about 13.5 hours) precalculus sprint for a student moving
+directly into Calculus BC.
 
-The course is intentionally limited to direct BC prerequisites:
+The course is intentionally limited to what BC assumes in its first weeks:
 
-- algebra, factoring, equations, restrictions, and function fluency
-- graph transformations, rational behavior, and average rate of change
 - radians, the unit circle, trig graphs, identities, and trig equations
+- algebra, factoring, equations, restrictions, and function fluency
 - exponential and logarithmic functions
-- parametric/vector-valued motion and polar coordinates
-- sequences, sigma notation, geometric series, and limit-ready algebra
+- graph transformations, rational behavior, and the difference quotient
+- limit-ready algebra and continuity language
+
+Parametric/vector motion, polar coordinates, and sequences/series are excluded
+on purpose: BC Units 9 and 10 teach them from scratch.
 
 Traditional precalculus survey material that does not pay off immediately in BC
 is deliberately excluded.
@@ -33,5 +35,5 @@ after dependencies are installed.
     npm run lint
     npm test
 
-npm test builds the app and verifies that the curriculum contains exactly 19
-lessons totaling 1,800 minutes.
+npm test builds the app and verifies that the curriculum contains exactly 14
+lessons totaling 810 minutes.

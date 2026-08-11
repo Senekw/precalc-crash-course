@@ -53,10 +53,10 @@ test("server-renders the complete BC Bridge dashboard at /precalc", async () => 
   assert.equal(response.status, 200);
 
   const html = await response.text();
-  assert.match(html, /Three days\. Start Calc BC ready\./);
-  assert.match(html, /30 focused hours/);
-  assert.match(html, /Only direct Calc BC prerequisites/);
-  assert.match(html, /If it does not pay rent in Calc BC, it is gone\./);
+  assert.match(html, /One day\. Start Calc BC ready\./);
+  assert.match(html, /13\.5 focused hours/);
+  assert.match(html, /Only what BC week one assumes/);
+  assert.match(html, /If it does not pay rent in week one of Calc BC, it is gone\./);
   assert.match(html, /AP Precalculus suite/);
 });
 
@@ -89,14 +89,14 @@ test("server-renders every scaffold mode with its exact unit skeleton", async ()
   }
 });
 
-test("locks the curriculum to 19 lessons and exactly 30 hours", async () => {
+test("locks the curriculum to 14 lessons and exactly 13.5 hours", async () => {
   const curriculum = await readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8");
   const lessonSource = curriculum.split("export const practiceQuestions")[0];
   const lessonCount = [...lessonSource.matchAll(/^\s{4}id: "/gm)].length;
   const minuteValues = [...lessonSource.matchAll(/^\s{4}minutes: (\d+),$/gm)].map((match) => Number(match[1]));
 
-  assert.equal(lessonCount, 19);
-  assert.equal(minuteValues.reduce((sum, minutes) => sum + minutes, 0), 1800);
+  assert.equal(lessonCount, 14);
+  assert.equal(minuteValues.reduce((sum, minutes) => sum + minutes, 0), 810);
   assert.match(curriculum, /Matrices and determinants/);
   assert.match(curriculum, /Probability and statistics/);
   assert.match(curriculum, /General conic-section classification/);

@@ -3,9 +3,9 @@ import { headers } from "next/headers";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
-const title = "BC Bridge — 3-Day Precalculus Sprint";
+const title = "BC Bridge: 1-Day Precalculus Sprint";
 const description =
-  "A ruthless 30-hour precalculus bridge containing only the algebra, functions, trigonometry, logarithms, parametric, polar, sequence, and limit skills required for Calculus BC.";
+  "A ruthless one-day precalculus bridge containing only the algebra, function, trigonometry, logarithm, and limit-readiness skills that Calculus BC assumes from day one.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: origin + "/og.png",
           width: 1731,
           height: 909,
-          alt: "BC Bridge — 3 days, 30 hours, Precalculus to Calculus BC",
+          alt: "BC Bridge: one day, 13.5 hours, Precalculus to Calculus BC",
         },
       ],
     },

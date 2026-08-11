@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  blockThemes,
   cutTopics,
-  dayThemes,
   formulaGroups,
   getLesson,
   lessons,
   practiceQuestions,
   totalMinutes,
-  type DayNumber,
+  type BlockNumber,
   type PracticeQuestion,
 } from "../curriculum";
 import type { PrecalcGo, PrecalcNavParams, PrecalcView } from "./nav";
@@ -37,6 +37,10 @@ type StoredProgress = {
 
 const STORAGE_KEY = "bc-bridge-progress-v1";
 
+// Saved progress can predate the one-day rebuild; drop ids that no longer exist.
+const validLessonIds = new Set(lessons.map((lesson) => lesson.id));
+const validQuestionIds = new Set(practiceQuestions.map((question) => question.id));
+
 const navGroups: { label: string; items: { id: View; label: string; icon: string }[] }[] = [
   {
     label: "AP PRECALCULUS",
@@ -53,10 +57,10 @@ const navGroups: { label: string; items: { id: View; label: string; icon: string
     ],
   },
   {
-    label: "3-DAY BRIDGE",
+    label: "1-DAY BRIDGE",
     items: [
       { id: "dashboard", label: "Dashboard", icon: "⌂" },
-      { id: "plan", label: "30-hour plan", icon: "◷" },
+      { id: "plan", label: "One-day plan", icon: "◷" },
       { id: "learn", label: "Crash lessons", icon: "◈" },
       { id: "drill", label: "Drills", icon: "≟" },
       { id: "formulas", label: "Formula sheet", icon: "ƒ" },
@@ -72,7 +76,7 @@ const skillOrder = ["Algebra", "Functions", "Trig", "Exp / Log", "BC Bridge"];
 const diagnosticIds = [
   "q1", "q3", "q5", "q7", "q9", "q10", "q11",
   "q14", "q15", "q16", "q18", "q19", "q21",
-  "q22", "q23", "q24", "q26", "q30", "q33", "q35",
+  "q22", "q23", "q24", "q26", "q27", "q35", "q36",
 ];
 
 function formatMinutes(minutes: number) {
@@ -183,9 +187,13 @@ export default function Home() {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const saved = JSON.parse(raw) as StoredProgress;
-          setCompleted(Array.isArray(saved.completed) ? saved.completed : []);
+          setCompleted(
+            Array.isArray(saved.completed) ? saved.completed.filter((id) => validLessonIds.has(id)) : [],
+          );
           setNotes(saved.notes ?? {});
-          setResults(Array.isArray(saved.results) ? saved.results : []);
+          setResults(
+            Array.isArray(saved.results) ? saved.results.filter((result) => validQuestionIds.has(result.id)) : [],
+          );
           setTheme(saved.theme === "light" ? "light" : "dark");
         }
       } catch {
@@ -297,8 +305,8 @@ export default function Home() {
   const dashboard = (
     <>
       <SectionHeader
-        title="Three days. Start Calc BC ready."
-        subtitle="Thirty focused hours. Algebra 2 in; calculus-ready fluency out."
+        title="One day. Start Calc BC ready."
+        subtitle="13.5 focused hours. Zero retention assumed in; calculus-ready fluency out."
       />
 
       <section className="next-action card accent-card">
@@ -308,7 +316,7 @@ export default function Home() {
           <h2>{nextLesson.title}</h2>
           <p>{nextLesson.payoff}</p>
           <div className="meta-row">
-            <span>Day {nextLesson.day}</span>
+            <span>Block {nextLesson.block}</span>
             <span>{formatMinutes(nextLesson.minutes)}</span>
             <span>Direct BC prerequisite</span>
           </div>
@@ -339,7 +347,7 @@ export default function Home() {
         <div className="metric card">
           <span className="metric-label">FOCUSED TIME</span>
           <strong>{formatMinutes(studiedMinutes)}</strong>
-          <span>of 30 hours completed</span>
+          <span>of {formatMinutes(totalMinutes)} completed</span>
         </div>
         <div className="metric card">
           <span className="metric-label">DRILL ACCURACY</span>
@@ -357,23 +365,23 @@ export default function Home() {
         <div className="card dashboard-panel">
           <div className="panel-heading">
             <div>
-              <span className="eyebrow">THE 30-HOUR PATH</span>
-              <h2>One dependency chain</h2>
+              <span className="eyebrow">THE 13.5-HOUR PATH</span>
+              <h2>Highest payoff first</h2>
             </div>
             <button className="text-link" type="button" onClick={() => navigate("plan")}>Open plan →</button>
           </div>
           <div className="dependency-list">
-            {([1, 2, 3] as DayNumber[]).map((day) => {
-              const dayLessons = lessons.filter((lesson) => lesson.day === day);
-              const dayDone = dayLessons.filter((lesson) => completedSet.has(lesson.id)).length;
+            {([1, 2, 3] as BlockNumber[]).map((block) => {
+              const blockLessons = lessons.filter((lesson) => lesson.block === block);
+              const blockDone = blockLessons.filter((lesson) => completedSet.has(lesson.id)).length;
               return (
-                <button className="dependency-row" type="button" key={day} onClick={() => navigate("plan")}>
-                  <span className="day-index">0{day}</span>
+                <button className="dependency-row" type="button" key={block} onClick={() => navigate("plan")}>
+                  <span className="day-index">0{block}</span>
                   <span className="dependency-copy">
-                    <strong>{dayThemes[day].title}</strong>
-                    <small>{dayThemes[day].outcome}</small>
+                    <strong>{blockThemes[block].title}</strong>
+                    <small>{blockThemes[block].outcome}</small>
                   </span>
-                  <span className="dependency-progress">{dayDone}/{dayLessons.length}</span>
+                  <span className="dependency-progress">{blockDone}/{blockLessons.length}</span>
                   <span aria-hidden="true">→</span>
                 </button>
               );
@@ -385,8 +393,8 @@ export default function Home() {
       <section className="card zero-filler">
         <div>
           <span className="eyebrow">THE FILTER</span>
-          <h2>If it does not pay rent in Calc BC, it is gone.</h2>
-          <p>No AP Precalculus exam padding. No survey units. Every lesson feeds limits, derivatives, integrals, parametric/polar work, or series.</p>
+          <h2>If it does not pay rent in week one of Calc BC, it is gone.</h2>
+          <p>No AP Precalculus exam padding. No survey units. No topics BC reteaches from scratch later. Every lesson feeds the limits and derivatives you meet immediately.</p>
         </div>
         <div className="cut-tags">
           {cutTopics.slice(0, 5).map((topic) => <span key={topic}>{topic}</span>)}
@@ -398,28 +406,31 @@ export default function Home() {
   const plan = (
     <>
       <SectionHeader
-        title="Your 3-day sprint"
-        subtitle="Ten hours of study per day, ordered so nothing depends on a lesson you have not done yet."
+        title="Your one-day grind"
+        subtitle="About 13.5 hours in three blocks. The material you absolutely cannot walk in without comes first, while you are fresh."
         action={<AppButton onClick={() => openLesson(nextLesson.id)}>Resume next lesson →</AppButton>}
       />
       <div className="plan-days">
-        {([1, 2, 3] as DayNumber[]).map((day) => {
-          const dayLessons = lessons.filter((lesson) => lesson.day === day);
-          let elapsed = 0;
+        {([1, 2, 3] as BlockNumber[]).map((block) => {
+          const blockLessons = lessons.filter((lesson) => lesson.block === block);
+          const blockMinutes = blockLessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
+          let elapsed = lessons
+            .filter((lesson) => lesson.block < block)
+            .reduce((sum, lesson) => sum + lesson.minutes, 0);
           return (
-            <section className="plan-day card" key={day}>
+            <section className="plan-day card" key={block}>
               <div className="plan-day-head">
                 <div>
-                  <span className="eyebrow">DAY {day} · 10 HOURS</span>
-                  <h2>{dayThemes[day].title}</h2>
-                  <p>{dayThemes[day].focus}</p>
+                  <span className="eyebrow">BLOCK {block} · {formatMinutes(blockMinutes).toUpperCase()}</span>
+                  <h2>{blockThemes[block].title}</h2>
+                  <p>{blockThemes[block].focus}</p>
                 </div>
                 <span className="day-total">
-                  {dayLessons.filter((lesson) => completedSet.has(lesson.id)).length}/{dayLessons.length}
+                  {blockLessons.filter((lesson) => completedSet.has(lesson.id)).length}/{blockLessons.length}
                 </span>
               </div>
               <div className="timeline">
-                {dayLessons.map((lesson) => {
+                {blockLessons.map((lesson) => {
                   const start = elapsed;
                   elapsed += lesson.minutes;
                   const done = completedSet.has(lesson.id);
@@ -437,8 +448,8 @@ export default function Home() {
                 })}
               </div>
               <div className="outcome-callout">
-                <span>END-OF-DAY GATE</span>
-                <p>{dayThemes[day].outcome}</p>
+                <span>END-OF-BLOCK GATE</span>
+                <p>{blockThemes[block].outcome}</p>
               </div>
             </section>
           );
@@ -457,17 +468,20 @@ export default function Home() {
         <span aria-hidden="true">◇</span>
         <p><strong>How to use:</strong> retrieve from memory first, read the essentials, reproduce the worked example, then answer the gate before revealing it.</p>
       </div>
-      {([1, 2, 3] as DayNumber[]).map((day) => (
-        <section className="lesson-unit" key={day}>
+      {([1, 2, 3] as BlockNumber[]).map((block) => (
+        <section className="lesson-unit" key={block}>
           <div className="unit-heading">
             <div>
-              <span className="eyebrow">DAY {day}</span>
-              <h2>{dayThemes[day].title}</h2>
+              <span className="eyebrow">BLOCK {block}</span>
+              <h2>{blockThemes[block].title}</h2>
             </div>
-            <span>{lessons.filter((lesson) => lesson.day === day).length} lessons · 10 hours</span>
+            <span>
+              {lessons.filter((lesson) => lesson.block === block).length} lessons ·{" "}
+              {formatMinutes(lessons.filter((lesson) => lesson.block === block).reduce((sum, lesson) => sum + lesson.minutes, 0))}
+            </span>
           </div>
           <div className="lesson-grid">
-            {lessons.filter((lesson) => lesson.day === day).map((lesson) => (
+            {lessons.filter((lesson) => lesson.block === block).map((lesson) => (
               <button
                 className={"lesson-row card " + (completedSet.has(lesson.id) ? "is-done" : "")}
                 type="button"
@@ -519,7 +533,7 @@ export default function Home() {
       </div>
       <div className="lesson-detail-head">
         <div>
-          <span className="pill">DAY {activeLesson.day} · LESSON {activeLesson.number}</span>
+          <span className="pill">BLOCK {activeLesson.block} · LESSON {activeLesson.number}</span>
           <h1>{activeLesson.title}</h1>
           <p>{activeLesson.payoff}</p>
         </div>
@@ -634,7 +648,7 @@ export default function Home() {
           <button className="pager-card card" type="button" onClick={() => openLesson(previousInOrder.id)}>
             <span className="pager-direction">← PREVIOUS LESSON</span>
             <strong>{previousInOrder.number} {previousInOrder.title}</strong>
-            <small>Day {previousInOrder.day} · {formatMinutes(previousInOrder.minutes)}</small>
+            <small>Block {previousInOrder.block} · {formatMinutes(previousInOrder.minutes)}</small>
           </button>
         ) : (
           <div className="pager-card card is-placeholder">
@@ -647,7 +661,7 @@ export default function Home() {
           <button className="pager-card card is-next" type="button" onClick={() => openLesson(nextInOrder.id)}>
             <span className="pager-direction">NEXT LESSON →</span>
             <strong>{nextInOrder.number} {nextInOrder.title}</strong>
-            <small>Day {nextInOrder.day} · {formatMinutes(nextInOrder.minutes)}</small>
+            <small>Block {nextInOrder.block} · {formatMinutes(nextInOrder.minutes)}</small>
           </button>
         ) : (
           <button className="pager-card card is-next" type="button" onClick={() => navigate("mastery")}>
@@ -762,9 +776,9 @@ export default function Home() {
       />
       <section className="drill-hero card accent-card">
         <div>
-          <span className="eyebrow">START HERE</span>
+          <span className="eyebrow">YOUR FINAL GATE</span>
           <h2>20-question BC readiness diagnostic</h2>
-          <p>Balanced across algebra, functions, trig, logs, and the BC bridge. Take it closed-note; use results to aim your repair time.</p>
+          <p>Balanced across algebra, functions, trig, logs, and the BC bridge. Take it closed-note at the end of the grind; every miss becomes your repair list.</p>
           <div className="meta-row"><span>20 questions</span><span>25–35 minutes</span><span>Target 85%</span></div>
         </div>
         <AppButton onClick={() => startDrill(20, undefined, true)}>Start diagnostic →</AppButton>
@@ -786,7 +800,7 @@ export default function Home() {
           <span className="drill-icon">◇</span>
           <strong>Full bank</strong>
           <p>Every local practice question in one cumulative pass.</p>
-          <small>{practiceQuestions.length} questions · ~50 min</small>
+          <small>{practiceQuestions.length} questions · ~40 min</small>
         </button>
       </div>
       <section className="skill-drills">
@@ -839,7 +853,7 @@ export default function Home() {
           type="search"
           value={formulaSearch}
           onChange={(event) => setFormulaSearch(event.target.value)}
-          placeholder="Try unit circle, geometric, polar, log…"
+          placeholder="Try unit circle, double angle, log…"
         />
         <span>{formulaGroups.reduce((sum, group) => sum + group.items.length, 0)} essentials</span>
       </div>
@@ -875,7 +889,7 @@ export default function Home() {
       <section className="mastery-overview card">
         <ProgressRing value={completionPercent} size={122} />
         <div>
-          <span className="eyebrow">30-HOUR COMPLETION</span>
+          <span className="eyebrow">ONE-DAY COMPLETION</span>
           <h2>{completed.length} of {lessons.length} lessons mastered</h2>
           <p>{formatMinutes(studiedMinutes)} completed · {formatMinutes(totalMinutes - studiedMinutes)} remaining</p>
         </div>
@@ -908,7 +922,7 @@ export default function Home() {
             {lessons.map((lesson) => (
               <button type="button" key={lesson.id} onClick={() => openLesson(lesson.id)}>
                 <span className={completedSet.has(lesson.id) ? "check is-done" : "check"}>{completedSet.has(lesson.id) ? "✓" : ""}</span>
-                <span><strong>{lesson.number} {lesson.shortTitle}</strong><small>Day {lesson.day} · {formatMinutes(lesson.minutes)}</small></span>
+                <span><strong>{lesson.number} {lesson.shortTitle}</strong><small>Block {lesson.block} · {formatMinutes(lesson.minutes)}</small></span>
                 <i>→</i>
               </button>
             ))}
@@ -916,7 +930,7 @@ export default function Home() {
         </div>
         <div className="card">
           <div className="panel-heading"><h2>Deliberately excluded</h2><span>no filler</span></div>
-          <p className="muted-copy">These are valid math topics, but they are not day-one Calc BC prerequisites. They do not belong in a three-day emergency bridge.</p>
+          <p className="muted-copy">These are valid math topics, but they are not day-one Calc BC prerequisites. Parametric, polar, and series are BC Units 9 and 10; the course teaches them from scratch months from now. None of it belongs in a one-day emergency grind.</p>
           <ul className="cut-list">
             {cutTopics.map((topic) => <li key={topic}><span>×</span>{topic}</li>)}
           </ul>
@@ -972,16 +986,16 @@ export default function Home() {
       <aside className={"sidebar " + (menuOpen ? "is-open" : "")}>
         <div className="brand-block">
           <div className="brand-mark">∫</div>
-          <div><strong>BC Bridge</strong><span>PRECALC · 3-DAY SPRINT</span></div>
+          <div><strong>BC Bridge</strong><span>PRECALC · 1-DAY SPRINT</span></div>
           <button className="mobile-close" type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)}>×</button>
         </div>
 
         <div className="sprint-panel">
           <span>YOUR MISSION</span>
-          <strong>30 focused hours</strong>
-          <small>Only direct Calc BC prerequisites</small>
+          <strong>13.5 focused hours</strong>
+          <small>Only what BC week one assumes</small>
           <div className="sidebar-progress"><span style={{ width: completionPercent + "%" }} /></div>
-          <div><b>{Math.round(completionPercent)}% complete</b><b>3 days</b></div>
+          <div><b>{Math.round(completionPercent)}% complete</b><b>1 day</b></div>
         </div>
 
         <nav aria-label="Primary">

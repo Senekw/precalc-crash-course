@@ -94,26 +94,26 @@ await send("Emulation.setDeviceMetricsOverride", {
   mobile: false,
 });
 
-await navigate("http://localhost:3000/");
+await navigate("http://localhost:3000/precalc");
 await evaluate("localStorage.removeItem('bc-bridge-progress-v1')");
-await navigate("http://localhost:3000/");
+await navigate("http://localhost:3000/precalc");
 
 const desktop = await evaluate("(() => ({ title: document.title, h1: document.querySelector('h1')?.innerText, width: innerWidth, scrollWidth: document.documentElement.scrollWidth, buttons: document.querySelectorAll('button').length, nav: document.querySelectorAll('nav button').length, main: Boolean(document.querySelector('main')), aside: Boolean(document.querySelector('aside')) }))()");
 assert(desktop.title.includes("BC Bridge"), "Document title is incorrect");
-assert(desktop.h1 === "Three days. Start Calc BC ready.", "Dashboard heading missing");
+assert(desktop.h1 === "One day. Start Calc BC ready.", "Dashboard heading missing");
 assert(desktop.scrollWidth <= desktop.width + 1, "Desktop has horizontal overflow: " + JSON.stringify(desktop));
-assert(desktop.nav === 6, "Primary navigation is incomplete");
+assert(desktop.nav === 15, "Primary navigation is incomplete");
 assert(desktop.main && desktop.aside, "Main or sidebar landmark missing");
 await screenshot("qa-dashboard");
 
-await evaluate("(() => { const button = [...document.querySelectorAll('nav button')].find((item) => item.innerText.includes('Tutor')); button?.click(); })()");
+await evaluate("(() => { const button = [...document.querySelectorAll('nav button')].find((item) => item.innerText.includes('Crash lessons')); button?.click(); })()");
 await delay(250);
-assert(await evaluate("document.querySelector('h1')?.innerText === 'Precalc Tutor'"), "Tutor catalog did not open");
-assert((await evaluate("document.querySelectorAll('.lesson-row').length")) === 19, "Tutor does not show all 19 lessons");
+assert(await evaluate("document.querySelector('h1')?.innerText === 'Precalc Tutor'"), "Crash lesson catalog did not open");
+assert((await evaluate("document.querySelectorAll('.lesson-row').length")) === 14, "Catalog does not show all 14 lessons");
 
 await evaluate("document.querySelector('.lesson-row')?.click()");
 await delay(250);
-assert(await evaluate("document.querySelector('h1')?.innerText === 'Algebra survival gate'"), "Lesson detail did not open");
+assert(await evaluate("document.querySelector('h1')?.innerText === 'Radians and the unit circle'"), "Lesson detail did not open");
 assert((await evaluate("document.querySelectorAll('.concept-block').length")) === 3, "Lesson essentials are incomplete");
 await evaluate("document.querySelector('.gate-question summary')?.click()");
 await delay(100);
@@ -134,13 +134,13 @@ assert(await evaluate("Boolean(document.querySelector('.feedback'))"), "Answer f
 assert(await evaluate("!document.querySelector('.question-actions .button')?.disabled"), "Next question did not enable");
 await screenshot("qa-drill");
 
-await evaluate("(() => { const button = [...document.querySelectorAll('nav button')].find((item) => item.innerText.includes('Formula sheet')); button?.click(); })()");
+await evaluate("(() => { const buttons = [...document.querySelectorAll('nav button')].filter((item) => item.innerText.includes('Formula sheet')); buttons[buttons.length - 1]?.click(); })()");
 await delay(200);
-const formulaAudit = await evaluate("(() => { const input = document.querySelector('#formula-search'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(input, 'polar'); input.dispatchEvent(new Event('input', { bubbles: true })); return { labels: [...document.querySelectorAll('label')].map((label) => label.htmlFor), formulaRows: document.querySelectorAll('.formula-row').length }; })()");
+const formulaAudit = await evaluate("(() => { const input = document.querySelector('#formula-search'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(input, 'unit circle'); input.dispatchEvent(new Event('input', { bubbles: true })); return { labels: [...document.querySelectorAll('label')].map((label) => label.htmlFor), formulaRows: document.querySelectorAll('.formula-row').length }; })()");
 await delay(150);
 const formulaRowsAfterSearch = await evaluate("document.querySelectorAll('.formula-row').length");
 assert(formulaAudit.labels.includes("formula-search"), "Formula search lacks a label");
-assert(formulaRowsAfterSearch >= 4, "Polar formula search returned too little");
+assert(formulaRowsAfterSearch >= 4, "Unit-circle formula search returned too little");
 
 const a11y = await evaluate("(() => ({ namelessButtons: [...document.querySelectorAll('button')].filter((button) => !(button.innerText.trim() || button.getAttribute('aria-label'))).length, duplicateIds: [...document.querySelectorAll('[id]')].map((node) => node.id).filter((id, index, all) => all.indexOf(id) !== index), unlabeledInputs: [...document.querySelectorAll('input,textarea')].filter((input) => !input.labels?.length && !input.getAttribute('aria-label')).length }))()");
 assert(a11y.namelessButtons === 0, "Found nameless buttons");
@@ -153,7 +153,7 @@ await send("Emulation.setDeviceMetricsOverride", {
   deviceScaleFactor: 1,
   mobile: true,
 });
-await navigate("http://localhost:3000/");
+await navigate("http://localhost:3000/precalc");
 const mobile = await evaluate("(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth, mobileHeader: getComputedStyle(document.querySelector('.mobile-header')).display, sidebarTransform: getComputedStyle(document.querySelector('.sidebar')).transform, textBlocks: [...document.querySelectorAll('.section-header p, .next-action-copy p')].map((node) => ({ clientWidth: node.clientWidth, scrollWidth: node.scrollWidth, whiteSpace: getComputedStyle(node).whiteSpace, overflow: getComputedStyle(node).overflow })) }))()");
 assert(mobile.scrollWidth <= mobile.width + 1, "Mobile has horizontal overflow: " + JSON.stringify(mobile));
 assert(mobile.mobileHeader !== "none", "Mobile header is hidden");
