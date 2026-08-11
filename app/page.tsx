@@ -55,12 +55,6 @@ function formatClockOffset(minutes: number) {
   return hours + ":" + String(mins).padStart(2, "0");
 }
 
-function formatTimer(seconds: number) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
-}
-
 function shuffle<T>(items: T[]) {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -146,8 +140,6 @@ export default function Home() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [sessionResults, setSessionResults] = useState<DrillResult[]>([]);
   const [sessionDone, setSessionDone] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(50 * 60);
-  const [timerRunning, setTimerRunning] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -174,20 +166,6 @@ export default function Home() {
     const stored: StoredProgress = { completed, notes, results, theme };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   }, [completed, notes, results, theme, hydrated]);
-
-  useEffect(() => {
-    if (!timerRunning) return;
-    const id = window.setInterval(() => {
-      setTimerSeconds((current) => {
-        if (current <= 1) {
-          setTimerRunning(false);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [timerRunning]);
 
   const completedSet = useMemo(() => new Set(completed), [completed]);
   const studiedMinutes = useMemo(
@@ -277,12 +255,6 @@ export default function Home() {
       <SectionHeader
         title="Three days. Start Calc BC ready."
         subtitle="Thirty focused hours. Algebra 2 in; calculus-ready fluency out."
-        action={
-          <span className="deadline-pill">
-            <span className="status-dot" />
-            School starts in 3 days
-          </span>
-        }
       />
 
       <section className="next-action card accent-card">
@@ -352,34 +324,6 @@ export default function Home() {
             })}
           </div>
         </div>
-
-        <div className="card dashboard-panel compact-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">FOCUS CYCLE</span>
-              <h2>50 / 10 timer</h2>
-            </div>
-            <span className={"timer-state " + (timerRunning ? "is-running" : "")}>
-              {timerRunning ? "FOCUSING" : "READY"}
-            </span>
-          </div>
-          <div className="big-timer" aria-live="polite">{formatTimer(timerSeconds)}</div>
-          <p className="muted-copy">Work for 50 minutes, reset for 10, then return. The 30-hour plan already counts these resets.</p>
-          <div className="button-row">
-            <AppButton onClick={() => setTimerRunning((current) => !current)}>
-              {timerRunning ? "Pause" : timerSeconds === 0 ? "Restart" : "Start focus"}
-            </AppButton>
-            <AppButton
-              variant="secondary"
-              onClick={() => {
-                setTimerRunning(false);
-                setTimerSeconds(50 * 60);
-              }}
-            >
-              Reset
-            </AppButton>
-          </div>
-        </div>
       </section>
 
       <section className="card zero-filler">
@@ -399,7 +343,7 @@ export default function Home() {
     <>
       <SectionHeader
         title="Your 3-day sprint"
-        subtitle="Exactly 600 clock minutes per day. Each hour uses a 50-minute focus block and a 10-minute reset."
+        subtitle="Ten hours of study per day, ordered so nothing depends on a lesson you have not done yet."
         action={<AppButton onClick={() => openLesson(nextLesson.id)}>Resume next lesson →</AppButton>}
       />
       <div className="plan-days">
@@ -489,9 +433,34 @@ export default function Home() {
   );
 
   const activeLesson = activeLessonId ? getLesson(activeLessonId) : null;
+  const activeIndex = activeLesson ? lessons.findIndex((lesson) => lesson.id === activeLesson.id) : -1;
+  const previousInOrder = activeIndex > 0 ? lessons[activeIndex - 1] : null;
+  const nextInOrder = activeIndex >= 0 && activeIndex < lessons.length - 1 ? lessons[activeIndex + 1] : null;
+
   const lessonDetail = activeLesson ? (
     <article className="lesson-detail">
-      <button className="back-link" type="button" onClick={() => setActiveLessonId(null)}>← All lessons</button>
+      <div className="lesson-topbar">
+        <button className="back-link" type="button" onClick={() => setActiveLessonId(null)}>← All lessons</button>
+        <div className="lesson-step-nav">
+          <button
+            type="button"
+            disabled={!previousInOrder}
+            aria-label={previousInOrder ? "Previous lesson: " + previousInOrder.number + " " + previousInOrder.shortTitle : "No previous lesson"}
+            onClick={() => previousInOrder && openLesson(previousInOrder.id)}
+          >
+            ←
+          </button>
+          <span>{activeIndex + 1} / {lessons.length}</span>
+          <button
+            type="button"
+            disabled={!nextInOrder}
+            aria-label={nextInOrder ? "Next lesson: " + nextInOrder.number + " " + nextInOrder.shortTitle : "No next lesson"}
+            onClick={() => nextInOrder && openLesson(nextInOrder.id)}
+          >
+            →
+          </button>
+        </div>
+      </div>
       <div className="lesson-detail-head">
         <div>
           <span className="pill">DAY {activeLesson.day} · LESSON {activeLesson.number}</span>
@@ -501,7 +470,7 @@ export default function Home() {
         <div className="lesson-detail-meta card">
           <span>TIMEBOX</span>
           <strong>{formatMinutes(activeLesson.minutes)}</strong>
-          <small>Includes 50 / 10 resets</small>
+          <small>Lesson {activeIndex + 1} of {lessons.length}</small>
         </div>
       </div>
 
@@ -597,7 +566,41 @@ export default function Home() {
         >
           Open a 5-question drill
         </AppButton>
+        {nextInOrder ? (
+          <AppButton variant="secondary" onClick={() => openLesson(nextInOrder.id)}>
+            Next lesson: {nextInOrder.number} <span aria-hidden="true">→</span>
+          </AppButton>
+        ) : null}
       </div>
+
+      <nav className="lesson-pager" aria-label="Lesson navigation">
+        {previousInOrder ? (
+          <button className="pager-card card" type="button" onClick={() => openLesson(previousInOrder.id)}>
+            <span className="pager-direction">← PREVIOUS LESSON</span>
+            <strong>{previousInOrder.number} {previousInOrder.title}</strong>
+            <small>Day {previousInOrder.day} · {formatMinutes(previousInOrder.minutes)}</small>
+          </button>
+        ) : (
+          <div className="pager-card card is-placeholder">
+            <span className="pager-direction">START OF THE COURSE</span>
+            <strong>This is the first lesson</strong>
+            <small>Everything after it depends on this one.</small>
+          </div>
+        )}
+        {nextInOrder ? (
+          <button className="pager-card card is-next" type="button" onClick={() => openLesson(nextInOrder.id)}>
+            <span className="pager-direction">NEXT LESSON →</span>
+            <strong>{nextInOrder.number} {nextInOrder.title}</strong>
+            <small>Day {nextInOrder.day} · {formatMinutes(nextInOrder.minutes)}</small>
+          </button>
+        ) : (
+          <button className="pager-card card is-next" type="button" onClick={() => navigate("mastery")}>
+            <span className="pager-direction">END OF THE PATH →</span>
+            <strong>Check your mastery gates</strong>
+            <small>85% overall · 80% in every strand</small>
+          </button>
+        )}
+      </nav>
     </article>
   ) : null;
 
@@ -905,11 +908,6 @@ export default function Home() {
         </nav>
 
         <div className="sidebar-bottom">
-          <div className="mini-timer">
-            <span>FOCUS TIMER</span>
-            <strong>{formatTimer(timerSeconds)}</strong>
-            <button type="button" onClick={() => setTimerRunning((current) => !current)}>{timerRunning ? "Pause" : "Start"}</button>
-          </div>
           <button
             className="theme-toggle"
             type="button"
