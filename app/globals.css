@@ -3389,3 +3389,86 @@ main {
     padding: 26px 16px 60px;
   }
 }
+
+/* ---- shared course engine (non-precalc modes) ---- */
+
+.course-figure {
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.course-figure-svg {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  overflow-x: auto;
+  color: var(--text);
+}
+
+.course-figure-svg svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.course-figure figcaption,
+.course-table-caption {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.course-table-wrap {
+  margin: 14px 0;
+}
+
+.course-data-table td,
+.course-data-table th {
+  text-align: left;
+}
+
+.course-code {
+  margin: 14px 0;
+}
+
+.course-code-pre {
+  font-size: 13px;
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+.course-callout-text {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.course-reference-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 46ch;
+}
+
+.course-track-heading {
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.work-id-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.work-id-card li {
+  font-size: 14px;
+  line-height: 1.5;
+}

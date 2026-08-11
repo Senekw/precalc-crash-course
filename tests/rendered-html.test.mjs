@@ -60,9 +60,17 @@ test("server-renders the complete BC Bridge dashboard at /precalc", async () => 
   assert.match(html, /AP Precalculus suite/);
 });
 
+test("server-renders the live AP Calculus BC mode", async () => {
+  const response = await render("/calc-bc");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /AP Calculus BC/);
+  assert.match(html, /The full BC suite/);
+  assert.doesNotMatch(html, /content pending/);
+});
+
 test("server-renders every scaffold mode with its exact unit skeleton", async () => {
   const expectations = [
-    ["/calc-bc", ["Limits and Continuity", "Infinite Sequences and Series"], 10],
     ["/english-lang", ["Rhetorical Situation", "Style"], 4],
     ["/stats", ["Exploring One-Variable Data", "Inference for Quantitative Data: Slopes"], 9],
     ["/bio", ["Chemistry of Life", "Ecology"], 8],
