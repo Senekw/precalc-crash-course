@@ -199,9 +199,11 @@ export type MCQ = {
 export type FRQPart = {
   letter: string;
   task: string;
+  taskCode?: string; // monospace block shown under the task (starter code)
   pointName: string; // rubric row name, e.g. "Thesis", "Part (a)"
   pointsAvailable: number;
   modelSolution: string;
+  solutionCode?: string; // monospace block shown under the model solution
   scoringNotes: string;
   partialCreditNotes?: string;
 };

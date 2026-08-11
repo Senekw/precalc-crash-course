@@ -91,6 +91,7 @@ function FrqRunner({
               <p>
                 <MathText text={part.task} />
               </p>
+              {part.taskCode ? <pre className="mcq-stimulus course-code-pre">{part.taskCode}</pre> : null}
               <small>
                 {part.pointName} · {part.pointsAvailable} point{part.pointsAvailable === 1 ? "" : "s"} available
               </small>
@@ -103,6 +104,7 @@ function FrqRunner({
                 <p>
                   <MathText text={part.modelSolution} />
                 </p>
+                {part.solutionCode ? <pre className="mcq-stimulus course-code-pre">{part.solutionCode}</pre> : null}
               </div>
               <div>
                 <span className="eyebrow">SCORING NOTES</span>

@@ -151,26 +151,28 @@ export function ExamsPage({ bundle, go }: { bundle: CourseBundle; go: CourseGo }
                       Start MCQs →
                     </button>
                   </div>
-                  <div className="exam-section">
-                    <div className="exam-section-copy">
-                      <strong>Free-response section</strong>
-                      <small>{test.frqIds.length} assigned questions</small>
+                  {test.frqIds.length ? (
+                    <div className="exam-section">
+                      <div className="exam-section-copy">
+                        <strong>Free-response section</strong>
+                        <small>{test.frqIds.length} assigned questions</small>
+                      </div>
+                      <div className="button-row">
+                        {test.frqIds
+                          .filter((id) => bundle.frq.some((q) => q.id === id))
+                          .map((id) => (
+                            <button
+                              key={id}
+                              className="button button-secondary"
+                              type="button"
+                              onClick={() => go("frq", { frqId: id })}
+                            >
+                              {id.replace(/^[a-z-]*frq-/, "Q").toUpperCase()} →
+                            </button>
+                          ))}
+                      </div>
                     </div>
-                    <div className="button-row">
-                      {test.frqIds
-                        .filter((id) => bundle.frq.some((q) => q.id === id))
-                        .map((id) => (
-                          <button
-                            key={id}
-                            className="button button-secondary"
-                            type="button"
-                            onClick={() => go("frq", { frqId: id })}
-                          >
-                            {id.replace(/^[a-z-]*frq-/, "Q").toUpperCase()} →
-                          </button>
-                        ))}
-                    </div>
-                  </div>
+                  ) : null}
                 </div>
               </section>
             );
