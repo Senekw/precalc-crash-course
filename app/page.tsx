@@ -12,8 +12,20 @@ import {
   type DayNumber,
   type PracticeQuestion,
 } from "./curriculum";
+import type { PrecalcGo, PrecalcNavParams, PrecalcView } from "./precalc/nav";
+import { usePrecalcProgress } from "./precalc/store";
+import { PrecalcDashboard } from "./precalc/pages/Dashboard";
+import { TutorPage } from "./precalc/pages/Tutor";
+import { StudyGuidesPage } from "./precalc/pages/StudyGuides";
+import { McqPage } from "./precalc/pages/Mcq";
+import { FrqPage } from "./precalc/pages/Frq";
+import { FlashcardsPage } from "./precalc/pages/Flashcards";
+import { FormulasPage } from "./precalc/pages/Formulas";
+import { ExamsPage } from "./precalc/pages/Exams";
+import { ProgressPage } from "./precalc/pages/Progress";
 
-type View = "dashboard" | "plan" | "learn" | "drill" | "formulas" | "mastery";
+type BridgeView = "dashboard" | "plan" | "learn" | "drill" | "formulas" | "mastery";
+type View = BridgeView | PrecalcView;
 type DrillResult = { id: string; correct: boolean; skill: string; choice?: number };
 type StoredProgress = {
   completed: string[];
@@ -24,14 +36,35 @@ type StoredProgress = {
 
 const STORAGE_KEY = "bc-bridge-progress-v1";
 
-const navItems: { id: View; label: string; icon: string }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "⌂" },
-  { id: "plan", label: "30-hour plan", icon: "◷" },
-  { id: "learn", label: "Tutor", icon: "◇" },
-  { id: "drill", label: "Drills", icon: "✓" },
-  { id: "formulas", label: "Formula sheet", icon: "Σ" },
-  { id: "mastery", label: "Mastery", icon: "▥" },
+const navGroups: { label: string; items: { id: View; label: string; icon: string }[] }[] = [
+  {
+    label: "AP PRECALCULUS",
+    items: [
+      { id: "pc-dash", label: "Dashboard", icon: "◎" },
+      { id: "pc-tutor", label: "Tutor", icon: "◇" },
+      { id: "pc-study", label: "Study guides", icon: "▤" },
+      { id: "pc-mcq", label: "MCQ practice", icon: "✓" },
+      { id: "pc-frq", label: "FRQ practice", icon: "✎" },
+      { id: "pc-cards", label: "Flashcards", icon: "▯" },
+      { id: "pc-formulas", label: "Formula sheet", icon: "Σ" },
+      { id: "pc-exams", label: "Practice exams", icon: "◫" },
+      { id: "pc-progress", label: "Progress", icon: "▥" },
+    ],
+  },
+  {
+    label: "3-DAY BRIDGE",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: "⌂" },
+      { id: "plan", label: "30-hour plan", icon: "◷" },
+      { id: "learn", label: "Crash lessons", icon: "◈" },
+      { id: "drill", label: "Drills", icon: "≟" },
+      { id: "formulas", label: "Formula sheet", icon: "ƒ" },
+      { id: "mastery", label: "Mastery", icon: "▦" },
+    ],
+  },
 ];
+
+const allNavItems = navGroups.flatMap((group) => group.items);
 
 const skillOrder = ["Algebra", "Functions", "Trig", "Exp / Log", "BC Bridge"];
 
@@ -128,6 +161,8 @@ function AppButton({
 export default function Home() {
   const [view, setView] = useState<View>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pcParams, setPcParams] = useState<PrecalcNavParams>({});
+  const precalc = usePrecalcProgress();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [completed, setCompleted] = useState<string[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -182,8 +217,16 @@ export default function Home() {
     setView(nextView);
     setMenuOpen(false);
     if (nextView === "learn") setActiveLessonId(null);
+    if (nextView.startsWith("pc-")) setPcParams({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  const goPrecalc: PrecalcGo = (nextView, params) => {
+    setPcParams(params ?? {});
+    setView(nextView);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   function openLesson(id: string) {
     setActiveLessonId(id);
@@ -271,6 +314,18 @@ export default function Home() {
         </div>
         <AppButton onClick={() => openLesson(nextLesson.id)}>
           {completed.length ? "Continue" : "Start now"} <span aria-hidden="true">→</span>
+        </AppButton>
+      </section>
+
+      <section className="next-action card">
+        <div className="next-action-icon">◎</div>
+        <div className="next-action-copy">
+          <span className="eyebrow">FULL COURSE</span>
+          <h2>AP Precalculus suite</h2>
+          <p>44 step-by-step lessons, 103 MCQs, 23 rubric-scored FRQs, 88 flashcards, and 4 full-length practice exams.</p>
+        </div>
+        <AppButton variant="secondary" onClick={() => goPrecalc("pc-dash")}>
+          Open <span aria-hidden="true">→</span>
         </AppButton>
       </section>
 
@@ -875,6 +930,41 @@ export default function Home() {
   if (view === "drill") content = drill;
   if (view === "formulas") content = formulas;
   if (view === "mastery") content = mastery;
+  if (view === "pc-dash") content = <PrecalcDashboard go={goPrecalc} progress={precalc.progress} />;
+  if (view === "pc-tutor")
+    content = (
+      <TutorPage
+        go={goPrecalc}
+        topicId={pcParams.topicId}
+        readTopics={precalc.progress.readTopics}
+        markTopicRead={precalc.markTopicRead}
+      />
+    );
+  if (view === "pc-study") content = <StudyGuidesPage go={goPrecalc} unitId={pcParams.unitId} />;
+  if (view === "pc-mcq")
+    content = (
+      <McqPage
+        key={JSON.stringify(pcParams.mcq ?? null)}
+        go={goPrecalc}
+        preset={pcParams.mcq}
+        recordAttempt={precalc.recordAttempt}
+      />
+    );
+  if (view === "pc-frq")
+    content = <FrqPage key={pcParams.frqId ?? "list"} frqId={pcParams.frqId} recordAttempt={precalc.recordAttempt} />;
+  if (view === "pc-cards")
+    content = (
+      <FlashcardsPage
+        go={goPrecalc}
+        unitId={pcParams.unitId}
+        srState={precalc.progress.srState}
+        updateSRCard={precalc.updateSRCard}
+      />
+    );
+  if (view === "pc-formulas") content = <FormulasPage />;
+  if (view === "pc-exams") content = <ExamsPage go={goPrecalc} />;
+  if (view === "pc-progress")
+    content = <ProgressPage go={goPrecalc} progress={precalc.progress} resetPrecalcProgress={precalc.resetPrecalcProgress} />;
 
   return (
     <div className="app-shell">
@@ -894,16 +984,21 @@ export default function Home() {
         </div>
 
         <nav aria-label="Primary">
-          {navItems.map((item) => (
-            <button
-              type="button"
-              className={view === item.id ? "active" : ""}
-              key={item.id}
-              onClick={() => navigate(item.id)}
-            >
-              <span aria-hidden="true">{item.icon}</span>{item.label}
-              {item.id === "learn" && completed.length ? <small>{completed.length}</small> : null}
-            </button>
+          {navGroups.map((group) => (
+            <div className="nav-group" key={group.label}>
+              <span className="nav-group-label">{group.label}</span>
+              {group.items.map((item) => (
+                <button
+                  type="button"
+                  className={view === item.id ? "active" : ""}
+                  key={item.id}
+                  onClick={() => navigate(item.id)}
+                >
+                  <span aria-hidden="true">{item.icon}</span>{item.label}
+                  {item.id === "learn" && completed.length ? <small>{completed.length}</small> : null}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -925,12 +1020,22 @@ export default function Home() {
       <header className="mobile-header">
         <button type="button" aria-label="Open menu" onClick={() => setMenuOpen(true)}>☰</button>
         <div className="brand-mark">π</div>
-        <div><strong>BC Bridge</strong><span>{navItems.find((item) => item.id === view)?.label}</span></div>
+        <div><strong>BC Bridge</strong><span>{allNavItems.find((item) => item.id === view)?.label}</span></div>
         <span>{Math.round(completionPercent)}%</span>
       </header>
 
       <main>
-        <div className={"content " + (activeLesson ? "reading-width" : "")}>
+        <div
+          className={
+            "content " +
+            (activeLesson ||
+            (view === "pc-tutor" && pcParams.topicId) ||
+            (view === "pc-study" && pcParams.unitId) ||
+            view === "pc-frq"
+              ? "reading-width"
+              : "")
+          }
+        >
           {content}
         </div>
       </main>

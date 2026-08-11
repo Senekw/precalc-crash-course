@@ -62,3 +62,33 @@ test("locks the curriculum to 19 lessons and exactly 30 hours", async () => {
   await assert.rejects(access(new URL("public/favicon.svg", projectRoot)));
   await access(new URL("public/og.png", projectRoot));
 });
+
+test("locks the AP Precalculus content bank", async () => {
+  const read = (p) => readFile(new URL(p, import.meta.url), "utf8");
+
+  const topics = await read("../app/precalc/data/topics.ts");
+  assert.equal([...topics.matchAll(/mW\(`/g)].length, 44);
+  assert.equal([...topics.matchAll(/subTopics:topicsU\d/g)].length, 3);
+
+  const mcq = await read("../app/precalc/data/mcq.ts");
+  assert.equal([...mcq.matchAll(/V\(`mc-/g)].length, 103);
+  assert.equal([...mcq.matchAll(/`no-calc`/g)].length, 84);
+  assert.equal([...mcq.matchAll(/`calc-required`/g)].length, 19);
+
+  const frq = await read("../app/precalc/data/frq.ts");
+  assert.equal([...frq.matchAll(/topicIds:\[/g)].length, 23);
+  assert.equal([...frq.matchAll(/modelSolution:`/g)].length, 72);
+
+  const cards = await read("../app/precalc/data/flashcards.ts");
+  assert.equal([...cards.matchAll(/B\(`/g)].length, 88);
+
+  const formulas = await read("../app/precalc/data/formulas.ts");
+  assert.equal([...formulas.matchAll(/latex:`/g)].length, 45);
+  assert.equal([...formulas.matchAll(/\{angle:`/g)].length, 16);
+
+  const tutor = await read("../app/precalc/data/tutor.ts");
+  assert.equal([...tutor.matchAll(/\{topicId:`\d/g)].length, 44);
+
+  const exams = await read("../app/precalc/data/exams.ts");
+  assert.equal([...exams.matchAll(/\{id:`precalc-pe-\d`/g)].length, 4);
+});
