@@ -4,13 +4,13 @@ import test from "node:test";
 
 const projectRoot = new URL("../", import.meta.url);
 
-async function render() {
+async function render(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", String(process.pid) + "-" + String(Date.now()));
+  workerUrl.searchParams.set("test", String(process.pid) + "-" + String(Date.now()) + "-" + path);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request("http://localhost/", {
+    new Request("http://localhost" + path, {
       headers: { accept: "text/html" },
     }),
     {
@@ -25,22 +25,60 @@ async function render() {
   );
 }
 
-test("server-renders the complete BC Bridge dashboard", async () => {
-  const response = await render();
+test("server-renders the course switcher on the home route", async () => {
+  const response = await render("/");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>BC Bridge — 3-Day Precalculus Sprint<\/title>/i);
-  assert.match(html, /Three days\. Start Calc BC ready\./);
-  assert.match(html, /30 focused hours/);
-  assert.match(html, /Only direct Calc BC prerequisites/);
-  assert.match(html, /If it does not pay rent in Calc BC, it is gone\./);
+  assert.match(html, /Study modes/);
+  assert.match(html, /AP Precalculus/);
+  assert.match(html, /AP Calculus BC/);
+  assert.match(html, /AP English Language &(amp;)? Composition/);
+  assert.match(html, /AP Statistics/);
+  assert.match(html, /AP Biology/);
+  assert.match(html, /AP Art History/);
+  assert.match(html, /Comp Sci 2 KAP/);
+  assert.match(html, /Period 2/);
+  assert.match(html, /Period 16/);
   assert.match(
     html,
     /<meta(?=[^>]*\bproperty=["']og:image["'])(?=[^>]*\bcontent=["']http:\/\/localhost(?::3000)?\/og\.png["'])[^>]*>/i,
   );
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape|Starter Project/i);
+});
+
+test("server-renders the complete BC Bridge dashboard at /precalc", async () => {
+  const response = await render("/precalc");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Three days\. Start Calc BC ready\./);
+  assert.match(html, /30 focused hours/);
+  assert.match(html, /Only direct Calc BC prerequisites/);
+  assert.match(html, /If it does not pay rent in Calc BC, it is gone\./);
+  assert.match(html, /AP Precalculus suite/);
+});
+
+test("server-renders every scaffold mode with its exact unit skeleton", async () => {
+  const expectations = [
+    ["/calc-bc", ["Limits and Continuity", "Infinite Sequences and Series"], 10],
+    ["/english-lang", ["Rhetorical Situation", "Style"], 4],
+    ["/stats", ["Exploring One-Variable Data", "Inference for Quantitative Data: Slopes"], 9],
+    ["/bio", ["Chemistry of Life", "Ecology"], 8],
+    ["/art-history", ["Global Prehistory", "Global Contemporary"], 10],
+    ["/cs2", ["Methods", "Projects"], 9],
+  ];
+  for (const [path, markers, unitCount] of expectations) {
+    const response = await render(path);
+    assert.equal(response.status, 200, path + " should render");
+    const html = await response.text();
+    for (const marker of markers) {
+      assert.ok(html.includes(marker), path + " should include " + JSON.stringify(marker));
+    }
+    const slots = html.match(/content pending/g) ?? [];
+    assert.ok(slots.length >= unitCount, path + " should render at least one pending slot per unit");
+  }
 });
 
 test("locks the curriculum to 19 lessons and exactly 30 hours", async () => {
