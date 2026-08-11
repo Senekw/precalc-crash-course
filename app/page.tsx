@@ -11,6 +11,31 @@ import { lessons } from "./curriculum";
 
 type ProgressLine = { headline: string; detail: string; pct: number | null };
 
+// Engine-based modes persist under course-<id>-v1 (see app/courses/engine/store.ts).
+function readCourseProgress(courseId: string, counts: { lessons: number; mcqs: number; frqs: number; cards: number }): ProgressLine {
+  const empty: ProgressLine = {
+    headline: "Not started",
+    detail: counts.lessons + " lessons · " + counts.mcqs + " MCQs · " + counts.frqs + " FRQs",
+    pct: 0,
+  };
+  try {
+    const raw = window.localStorage.getItem("course-" + courseId + "-v1");
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as { attempts?: unknown[]; readTopics?: string[] };
+    const attempts = parsed.attempts?.length ?? 0;
+    const read = parsed.readTopics?.length ?? 0;
+    if (attempts + read === 0) return empty;
+    const pct = counts.lessons ? Math.min(100, Math.round((read / counts.lessons) * 100)) : 0;
+    return {
+      headline: pct + "% read",
+      detail: read + "/" + counts.lessons + " lessons read · " + attempts + " attempts",
+      pct,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 function readPrecalcProgress(): ProgressLine {
   try {
     const bridgeRaw = window.localStorage.getItem("bc-bridge-progress-v1");
@@ -33,9 +58,19 @@ function readPrecalcProgress(): ProgressLine {
 
 export default function CourseSwitcher() {
   const [precalcProgress, setPrecalcProgress] = useState<ProgressLine | null>(null);
+  const [courseProgress, setCourseProgress] = useState<Record<string, ProgressLine>>({});
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setPrecalcProgress(readPrecalcProgress()));
+    const frame = window.requestAnimationFrame(() => {
+      setPrecalcProgress(readPrecalcProgress());
+      const lines: Record<string, ProgressLine> = {};
+      for (const course of courses) {
+        if (course.status === "live" && course.counts) {
+          lines[course.id] = readCourseProgress(course.id, course.counts);
+        }
+      }
+      setCourseProgress(lines);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -51,7 +86,7 @@ export default function CourseSwitcher() {
       <div className="switcher-grid">
         {courses.map((course) => {
           const isLive = course.status === "live";
-          const progress = isLive ? precalcProgress : null;
+          const progress = isLive ? (course.id === "precalc" ? precalcProgress : courseProgress[course.id] ?? null) : null;
           return (
             <Link className="switcher-card card" href={course.route} key={course.id} style={{ borderTopColor: course.color }}>
               <div className="switcher-card-head">

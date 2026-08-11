@@ -24,6 +24,10 @@ export type Course = {
   unitLabel: string;
   units: CourseUnit[];
   extras?: string[];
+  // Static content totals for live engine modes, refreshed at each
+  // course checkpoint. The home switcher divides locally stored progress
+  // by these without importing the course's content bundle.
+  counts?: { lessons: number; mcqs: number; frqs: number; cards: number };
 };
 
 export const courses: Course[] = [
